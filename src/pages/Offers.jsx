@@ -1,257 +1,239 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { db } from "../firebase";
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
 
-function Offers() {
-  const [offers, setOffers] = useState([
-    {
-      id: 1,
-      name: "كومبو بوكس",
-      description: "ميني معجنات + لتر بيبسي",
-      oldPrice: 30,
-      price: 22,
-      active: true,
-    },
-    {
-      id: 2,
-      name: "فطيرة الزعتر والجبن",
-      description: "فطيرة زعتر + فطيرة جبن + كوب شاي",
-      oldPrice: 25,
-      price: 19,
-      active: true,
-    },
-  ]);
+function Offers({ cart, setCart, staffUser }) {
+  const [offers, setOffers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [showForm, setShowForm] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponResult, setCouponResult] = useState(null);
+  const [isChecking, setIsChecking] = useState(false);
 
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    oldPrice: "",
-    price: "",
-  });
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "offers"),
+      (snapshot) => {
+        const liveOffers = snapshot.docs.map((docItem) => ({
+          id: docItem.id,
+          ...docItem.data(),
+        }));
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
-  };
+        setOffers(liveOffers);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error("خطأ في جلب العروض:", error);
+        setIsLoading(false);
+      }
+    );
 
-  const addOffer = (e) => {
+    return () => unsubscribe();
+  }, []);
+
+  function addOfferToCart(offer) {
+    const existingItem = cart.find(
+      (item) => item.id === `offer-${offer.id}`
+    );
+
+    if (existingItem) {
+      setCart(
+        cart.map((item) =>
+          item.id === `offer-${offer.id}`
+            ? {
+              ...item,
+              quantity: item.quantity + 1,
+            }
+            : item
+        )
+      );
+    } else {
+      setCart([
+        ...cart,
+        {
+          ...offer,
+          id: `offer-${offer.id}`,
+          name: offer.title,
+          category: "العروض",
+          quantity: 1,
+        },
+      ]);
+    }
+  }
+
+  async function verifyCoupon(e) {
     e.preventDefault();
 
-    if (!form.name || !form.description || !form.price) {
-      alert("يرجى تعبئة اسم العرض والوصف والسعر.");
+    const code = couponInput.trim();
+
+    if (!code) {
       return;
     }
 
-    const newOffer = {
-      id: Date.now(),
-      name: form.name,
-      description: form.description,
-      oldPrice: Number(form.oldPrice) || 0,
-      price: Number(form.price),
-      active: true,
-    };
+    setIsChecking(true);
+    setCouponResult(null);
 
-    setOffers([...offers, newOffer]);
+    try {
+      const couponQuery = query(
+        collection(db, "orders"),
+        where("couponCode", "==", code)
+      );
 
-    setForm({
-      name: "",
-      description: "",
-      oldPrice: "",
-      price: "",
-    });
+      const snapshot = await getDocs(couponQuery);
 
-    setShowForm(false);
-  };
+      if (snapshot.empty) {
+        setCouponResult({
+          status: "invalid",
+          message: "❌ هذا الرمز غير صحيح أو غير موجود",
+        });
+      } else {
+        const orderDoc = snapshot.docs[0];
+        const order = orderDoc.data();
 
-  const deleteOffer = (id) => {
-    if (window.confirm("هل أنت متأكد من حذف هذا العرض؟")) {
-      setOffers(offers.filter((offer) => offer.id !== id));
+        if (order.couponUsed) {
+          setCouponResult({
+            status: "used",
+            message: `⚠️ هذا الكوبون مستخدم مسبقًا (طلب #${order.orderNumber})`,
+          });
+        } else {
+          await updateDoc(doc(db, "orders", orderDoc.id), {
+            couponUsed: true,
+          });
+
+          setCouponResult({
+            status: "valid",
+            message: `✅ كوبون صالح — طلب #${order.orderNumber} (${order.name})`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      setCouponResult({
+        status: "invalid",
+        message: "❌ حدث خطأ أثناء التحقق. تأكد من اتصالك بالإنترنت.",
+      });
+    } finally {
+      setCouponInput("");
+      setIsChecking(false);
     }
-  };
-
-  const toggleOffer = (id) => {
-    setOffers(
-      offers.map((offer) =>
-        offer.id === id
-          ? { ...offer, active: !offer.active }
-          : offer
-      )
-    );
-  };
+  }
 
   return (
-    <main className="offers-page">
+    <main className="page">
+      {staffUser && (
+        <div className="staff-login-box" style={{ marginBottom: "30px" }}>
+          <h3>تحقق من الكوبون</h3>
 
-      <div className="offers-header">
-        <div>
-          <span className="page-label">إدارة العروض</span>
-          <h2>العروض</h2>
-          <p>أضف وعدّل وتابع عروض باب الشرق بسهولة.</p>
-        </div>
+          <p>
+            اكتب الرمز يدويًا أو مرّر الباركود مباشرة (سيُكتب
+            تلقائيًا).
+          </p>
 
-        <button
-          className="add-offer-button"
-          onClick={() => setShowForm(!showForm)}
-        >
-          + إضافة عرض
-        </button>
-      </div>
-
-      {showForm && (
-        <form className="offer-form" onSubmit={addOffer}>
-          <h3>إضافة عرض جديد</h3>
-
-          <div className="form-grid">
-
-            <div className="form-group">
-              <label>اسم العرض</label>
+          <form
+            onSubmit={verifyCoupon}
+            className="staff-login-form"
+          >
+            <label>
+              رمز الكوبون
               <input
                 type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="مثال: كومبو بوكس"
+                autoFocus
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value)}
               />
-            </div>
-
-            <div className="form-group">
-              <label>وصف العرض</label>
-              <input
-                type="text"
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                placeholder="اكتب تفاصيل العرض"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>السعر قبل الخصم</label>
-              <input
-                type="number"
-                name="oldPrice"
-                value={form.oldPrice}
-                onChange={handleChange}
-                placeholder="30"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>السعر بعد الخصم</label>
-              <input
-                type="number"
-                name="price"
-                value={form.price}
-                onChange={handleChange}
-                placeholder="22"
-              />
-            </div>
-
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="save-button">
-              حفظ العرض
-            </button>
+            </label>
 
             <button
-              type="button"
-              className="cancel-button"
-              onClick={() => setShowForm(false)}
+              type="submit"
+              className="checkout-submit"
+              disabled={isChecking}
             >
-              إلغاء
+              {isChecking ? "جارٍ التحقق..." : "تحقق"}
             </button>
-          </div>
-        </form>
+          </form>
+
+          {couponResult && (
+            <p
+              style={{
+                marginTop: "15px",
+                fontWeight: "700",
+                color:
+                  couponResult.status === "valid"
+                    ? "green"
+                    : couponResult.status === "used"
+                    ? "#b8860b"
+                    : "#a33",
+              }}
+            >
+              {couponResult.message}
+            </p>
+          )}
+        </div>
       )}
 
-      <section className="offers-stats">
-
-        <div className="stat-card">
-          <span>إجمالي العروض</span>
-          <strong>{offers.length}</strong>
+      {!staffUser && (
+        <div className="offers-cart-link">
+          <Link to="/menu">
+            🛒 السلة (
+            {cart.reduce(
+              (total, item) => total + item.quantity,
+              0
+            )}
+            )
+          </Link>
         </div>
+      )}
 
-        <div className="stat-card">
-          <span>العروض الفعالة</span>
-          <strong>
-            {offers.filter((offer) => offer.active).length}
-          </strong>
-        </div>
+      <span className="page-label">عروض بابل للمعجنات</span>
 
-        <div className="stat-card">
-          <span>العروض المتوقفة</span>
-          <strong>
-            {offers.filter((offer) => !offer.active).length}
-          </strong>
-        </div>
+      <h2>العروض</h2>
 
-      </section>
+      <p>
+        استفد من عروض بابل للمعجنات المميزة.
+      </p>
 
-      <section className="offers-list">
-
-        {offers.length === 0 ? (
-          <div className="empty-offers">
-            <h3>لا توجد عروض حاليًا</h3>
-            <p>اضغط على "إضافة عرض" لإنشاء أول عرض.</p>
-          </div>
-        ) : (
-          offers.map((offer) => (
-            <article className="admin-offer-card" key={offer.id}>
-
-              <div className="offer-card-top">
-                <div className="offer-symbol">🎁</div>
-
-                <span
-                  className={
-                    offer.active
-                      ? "status active"
-                      : "status inactive"
-                  }
-                >
-                  {offer.active ? "فعال" : "متوقف"}
-                </span>
+      {isLoading ? (
+        <p className="empty-cart">جارٍ تحميل العروض...</p>
+      ) : (
+        <section className="offers-grid">
+          {offers.map((offer) => (
+            <article className="offer-card" key={offer.id}>
+              <div className="offer-image">
+                <img src={offer.image} alt={offer.title} />
               </div>
 
-              <h3>{offer.name}</h3>
+              <div className="offer-content">
+                <span>عرض خاص</span>
 
-              <p>{offer.description}</p>
+                <h3>{offer.title}</h3>
 
-              <div className="admin-price">
-                <strong>{offer.price}</strong>
-                <span>ريال</span>
+                <p>{offer.description}</p>
 
-                {offer.oldPrice > 0 && (
-                  <del>{offer.oldPrice} ريال</del>
-                )}
+                <div className="offer-footer">
+                  <strong>{offer.price} ريال</strong>
+
+                  {!staffUser && (
+                    <button
+                      onClick={() => addOfferToCart(offer)}
+                    >
+                      اطلب الآن
+                    </button>
+                  )}
+                </div>
               </div>
-
-              <div className="offer-actions">
-
-                <button
-                  className="toggle-button"
-                  onClick={() => toggleOffer(offer.id)}
-                >
-                  {offer.active ? "إيقاف" : "تفعيل"}
-                </button>
-
-                <button
-                  className="delete-button"
-                  onClick={() => deleteOffer(offer.id)}
-                >
-                  حذف
-                </button>
-
-              </div>
-
             </article>
-          ))
-        )}
-
-      </section>
-
+          ))}
+        </section>
+      )}
     </main>
   );
 }
