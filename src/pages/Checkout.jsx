@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { branchNames } from "../staffAccounts";
+import { ORDER_STATUSES } from "../constants";
 import {
   collection,
   addDoc,
@@ -114,7 +115,7 @@ function Checkout({ cart, setCart }) {
         total: cartTotal,
         date: new Date().toLocaleString("ar-SA"),
         createdAt: Date.now(),
-        status: "جديد",
+        status: ORDER_STATUSES.NEW,
       };
 
       // حفظ الطلب في قاعدة البيانات

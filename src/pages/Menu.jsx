@@ -2,13 +2,22 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, onSnapshot } from "firebase/firestore";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function Menu({ cart, setCart }) {
   const [category, setCategory] = useState("الكل");
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useLanguage();
 
   const categories = ["الكل", "المعجنات", "الفطائر", "البيتزا"];
+
+  const categoryLabels = {
+    "الكل": t("categoryAll"),
+    "المعجنات": t("categoryPastries"),
+    "الفطائر": t("categoryPies"),
+    "البيتزا": t("categoryPizza"),
+  };
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -105,32 +114,30 @@ function Menu({ cart, setCart }) {
     <main className="menu-page">
       <section className="menu-hero">
         <div>
-          <span className="section-label">قائمة بابل للمعجنات</span>
+          <span className="section-label">{t("menuSectionLabel")}</span>
 
-          <h2>اختر ما يناسبك</h2>
+          <h2>{t("menuTitle")}</h2>
 
-          <p>
-            اكتشف أصنافنا من المعجنات والفطائر والبيتزا.
-          </p>
+          <p>{t("menuDescription")}</p>
         </div>
 
         <div className="menu-count">
           <strong>{filteredItems.length}</strong>
-          <span>صنف</span>
+          <span>{t("menuItemCountLabel")}</span>
         </div>
       </section>
 
       <section className="cart-box">
         <div className="cart-header">
-          <h3>🛒 السلة</h3>
+          <h3>🛒 {t("cartTitle")}</h3>
 
-          <span>{cartCount} صنف</span>
+          <span>
+            {cartCount} {t("cartItemCountLabel")}
+          </span>
         </div>
 
         {cart.length === 0 ? (
-          <p className="empty-cart">
-            السلة فارغة، أضف الأصناف التي تريدها.
-          </p>
+          <p className="empty-cart">{t("emptyCart")}</p>
         ) : (
           <div className="cart-items">
             {cart.map((item) => (
@@ -139,7 +146,7 @@ function Menu({ cart, setCart }) {
                   <strong>{item.name}</strong>
 
                   <span>
-                    {item.price} ريال × {item.quantity}
+                    {item.price} {t("currency")} × {item.quantity}
                   </span>
                 </div>
 
@@ -160,7 +167,7 @@ function Menu({ cart, setCart }) {
                 </div>
 
                 <strong>
-                  {item.price * item.quantity} ريال
+                  {item.price * item.quantity} {t("currency")}
                 </strong>
               </div>
             ))}
@@ -168,12 +175,14 @@ function Menu({ cart, setCart }) {
         )}
 
         <div className="cart-total">
-          <span>الإجمالي</span>
+          <span>{t("totalLabel")}</span>
 
-          <strong>{cartTotal} ريال</strong>
+          <strong>
+            {cartTotal} {t("currency")}
+          </strong>
         </div>{cart.length > 0 && (
           <Link to="/checkout" className="checkout-button">
-            إتمام الطلب
+            {t("checkoutButton")}
           </Link>
         )}
       </section>
@@ -189,13 +198,13 @@ function Menu({ cart, setCart }) {
             }
             onClick={() => setCategory(item)}
           >
-            {item}
+            {categoryLabels[item]}
           </button>
         ))}
       </section>
 
       {isLoading ? (
-        <p className="empty-cart">جارٍ تحميل القائمة...</p>
+        <p className="empty-cart">{t("loadingMenu")}</p>
       ) : (
         <section className="menu-grid">
           {filteredItems.map((item) => (
@@ -209,7 +218,7 @@ function Menu({ cart, setCart }) {
 
               <div className="menu-card-content">
                 <span className="menu-category">
-                  {item.category}
+                  {categoryLabels[item.category] || item.category}
                 </span>
 
                 <h3>{item.name}</h3>
@@ -217,12 +226,14 @@ function Menu({ cart, setCart }) {
                 <p>{item.description}</p>
 
                 <div className="menu-card-footer">
-                  <strong>{item.price} ريال</strong>
+                  <strong>
+                    {item.price} {t("currency")}
+                  </strong>
 
                   <button
                     onClick={() => addToCart(item)}
                   >
-                    إضافة
+                    {t("addButton")}
                   </button>
                 </div>
               </div>

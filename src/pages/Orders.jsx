@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, useRef } from "react";
 import { db } from "../firebase";
 import { branchNames } from "../staffAccounts";
+import { ORDER_STATUSES, ORDER_STATUS_LIST } from "../constants";
 import {
   collection,
   onSnapshot,
@@ -18,16 +19,11 @@ function Orders({ staffUser }) {
   const [branchFilter, setBranchFilter] = useState("الكل");
   const [soundEnabled, setSoundEnabled] = useState(false);
   const audioContextRef = useRef(null);
+  const soundEnabledRef = useRef(false);
 
   const isAdmin = staffUser?.role === "admin";
 
-  const filterOptions = [
-    "الكل",
-    "جديد",
-    "قيد التحضير",
-    "جاهز",
-    "تم التسليم",
-  ];
+  const filterOptions = ["الكل", ...ORDER_STATUS_LIST];
 
   const branchScopedOrders = isAdmin
     ? orders
@@ -44,56 +40,104 @@ function Orders({ staffUser }) {
     (order) => filter === "الكل" || order.status === filter
   );
 
-  const playBeep = () => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current =
-          new (
-            window.AudioContext ||
-            window.webkitAudioContext
-          )();
-      }
+  const getAudioContext = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current =
+        new (window.AudioContext || window.webkitAudioContext)();
+      console.log(
+        "[صوت] تم إنشاء AudioContext جديد، الحالة الحالية:",
+        audioContextRef.current.state
+      );
+    }
+    return audioContextRef.current;
+  };
 
-      const audioCtx = audioContextRef.current;
+  const playBeep = (source) => {
+    try {
+      const audioCtx = getAudioContext();
+
+      console.log(
+        `[صوت] محاولة تشغيل صوت (السبب: ${source}) — حالة السياق: ${audioCtx.state}`
+      );
 
       if (audioCtx.state === "suspended") {
-        audioCtx.resume();
+        audioCtx.resume().then(() => {
+          console.log("[صوت] تم استئناف السياق بنجاح، الحالة الآن:", audioCtx.state);
+        }).catch((err) => {
+          console.error("[صوت] فشل استئناف السياق:", err);
+        });
       }
 
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
+      // 3 نغمات متتالية عشان يصير التنبيه أوضح وأطول
+      const beepTimes = [0, 0.5, 1.0];
 
-      oscillator.type = "sine";
+      beepTimes.forEach((delay) => {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
 
-      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        oscillator.type = "sine";
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
+        const startTime = audioCtx.currentTime + delay;
 
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.4);
+        oscillator.frequency.setValueAtTime(850, startTime);
+        gainNode.gain.setValueAtTime(0.35, startTime);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start(startTime);
+        oscillator.stop(startTime + 0.35);
+      });
+
+      console.log("[صوت] تم إصدار أمر تشغيل الصوت (3 نغمات).");
     } catch (error) {
-      console.error("خطأ في تشغيل الصوت:", error);
+      console.error("[صوت] خطأ في تشغيل الصوت:", error);
     }
   };
 
-  function enableSound() {
-    if (!audioContextRef.current) {
-      audioContextRef.current =
-        new (
-          window.AudioContext ||
-          window.webkitAudioContext
-        )();
+  function activateSound(source) {
+    if (soundEnabledRef.current) return;
+
+    console.log(`[صوت] تفعيل الصوت (السبب: ${source})`);
+
+    const audioCtx = getAudioContext();
+
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().then(() => {
+        console.log("[صوت] تم تفعيل السياق فعلياً، الحالة:", audioCtx.state);
+      }).catch((err) => {
+        console.error("[صوت] فشل تفعيل السياق:", err);
+      });
     }
 
-    if (audioContextRef.current.state === "suspended") {
-      audioContextRef.current.resume();
-    }
-
-    playBeep();
+    soundEnabledRef.current = true;
     setSoundEnabled(true);
   }
+
+  function enableSoundManually() {
+    activateSound("ضغطة الزر اليدوي");
+    playBeep("اختبار يدوي بعد الضغط على الزر");
+  }
+
+  // ===== تفعيل الصوت تلقائياً عند أول تفاعل من الكاشير بالصفحة (أي ضغطة) =====
+  useEffect(() => {
+    if (soundEnabled) return;
+
+    function handleFirstInteraction() {
+      console.log("[صوت] تم رصد أول تفاعل بالصفحة (ضغطة/زر لوحة مفاتيح)");
+      activateSound("أول تفاعل تلقائي بالصفحة");
+    }
+
+    document.addEventListener("click", handleFirstInteraction);
+    document.addEventListener("keydown", handleFirstInteraction);
+
+    console.log("[صوت] تم تركيب مستمع أول تفاعل بالصفحة.");
+
+    return () => {
+      document.removeEventListener("click", handleFirstInteraction);
+      document.removeEventListener("keydown", handleFirstInteraction);
+    };
+  }, [soundEnabled]);
 
   async function changeStatus(orderId, newStatus) {
     try {
@@ -129,6 +173,8 @@ function Orders({ staffUser }) {
       orderBy("createdAt", "asc")
     );
 
+    let isFirstLoad = true;
+
     const unsubscribe = onSnapshot(
       ordersQuery,
       (snapshot) => {
@@ -136,6 +182,17 @@ function Orders({ staffUser }) {
           id: docItem.id,
           ...docItem.data(),
         }));
+
+        if (isFirstLoad) {
+          // أول تحميل للطلبات الموجودة أصلاً: نسجلها كـ "معروفة" فوراً
+          // بدون محاولة تشغيل صوت لها (مهم جداً، هذا كان سبب تعليق الصوت)
+          knownOrderIds.current = liveOrders.map((order) => order.id);
+          isFirstLoad = false;
+          console.log(
+            "[صوت] تم تحميل الطلبات الحالية عند فتح الصفحة، العدد:",
+            liveOrders.length
+          );
+        }
 
         setOrders(liveOrders);
       },
@@ -148,23 +205,28 @@ function Orders({ staffUser }) {
   }, []);
 
   useEffect(() => {
-    const currentOrderIds = branchScopedOrders.map((order) => order.id);
-
     if (knownOrderIds.current === null) {
-      knownOrderIds.current = currentOrderIds;
+      // لسا ما تحمّل أول دفعة طلبات، تجاهل
       return;
     }
 
-    const hasNewOrder = currentOrderIds.some(
+    const currentOrderIds = branchScopedOrders.map((order) => order.id);
+
+    const newOrderIds = currentOrderIds.filter(
       (id) => !knownOrderIds.current.includes(id)
     );
 
-    if (hasNewOrder && soundEnabled) {
-      playBeep();
+    if (newOrderIds.length > 0) {
+      console.log(
+        "[صوت] تم رصد طلب/طلبات جديدة فعلياً:",
+        newOrderIds
+      );
+      playBeep("وصول طلب جديد");
     }
 
     knownOrderIds.current = currentOrderIds;
-  }, [branchScopedOrders, soundEnabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchScopedOrders]);
 
   return (
     <main className="page">
@@ -177,8 +239,9 @@ function Orders({ staffUser }) {
 
       <div
         className={
-          branchScopedOrders.filter((order) => order.status === "جديد")
-            .length > 0
+          branchScopedOrders.filter(
+            (order) => order.status === ORDER_STATUSES.NEW
+          ).length > 0
             ? "cashier-summary has-new-orders"
             : "cashier-summary"
         }
@@ -187,14 +250,14 @@ function Orders({ staffUser }) {
         <strong>
           {
             branchScopedOrders.filter(
-              (order) => order.status === "جديد"
+              (order) => order.status === ORDER_STATUSES.NEW
             ).length
           }
         </strong>
       </div>
 
       {!soundEnabled ? (
-        <button className="refresh-orders" onClick={enableSound}>
+        <button className="refresh-orders" onClick={enableSoundManually}>
           🔊 تفعيل صوت التنبيه
         </button>
       ) : (
@@ -321,31 +384,33 @@ function Orders({ staffUser }) {
               </div>
 
               <div className="order-status-buttons">
-                {order.status === "جديد" && (
+                {order.status === ORDER_STATUSES.NEW && (
                   <button
                     className="next-status-button"
                     onClick={() =>
-                      changeStatus(order.id, "قيد التحضير")
+                      changeStatus(order.id, ORDER_STATUSES.PREPARING)
                     }
                   >
                     ▶ بدء التحضير
                   </button>
                 )}
 
-                {order.status === "قيد التحضير" && (
+                {order.status === ORDER_STATUSES.PREPARING && (
                   <button
                     className="next-status-button"
-                    onClick={() => changeStatus(order.id, "جاهز")}
+                    onClick={() =>
+                      changeStatus(order.id, ORDER_STATUSES.READY)
+                    }
                   >
                     ▶ الطلب جاهز
                   </button>
                 )}
 
-                {order.status === "جاهز" && (
+                {order.status === ORDER_STATUSES.READY && (
                   <button
                     className="next-status-button"
                     onClick={() =>
-                      changeStatus(order.id, "تم التسليم")
+                      changeStatus(order.id, ORDER_STATUSES.DELIVERED)
                     }
                   >
                     ▶ تم التسليم

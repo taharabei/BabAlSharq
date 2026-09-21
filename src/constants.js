@@ -1,0 +1,13 @@
+export const ORDER_STATUSES = {
+  NEW: "جديد",
+  PREPARING: "قيد التحضير",
+  READY: "جاهز",
+  DELIVERED: "تم التسليم",
+};
+
+export const ORDER_STATUS_LIST = [
+  ORDER_STATUSES.NEW,
+  ORDER_STATUSES.PREPARING,
+  ORDER_STATUSES.READY,
+  ORDER_STATUSES.DELIVERED,
+];

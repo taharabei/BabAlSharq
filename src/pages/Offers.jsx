@@ -10,6 +10,7 @@ import {
   updateDoc,
   doc,
 } from "firebase/firestore";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function Offers({ cart, setCart, staffUser }) {
   const [offers, setOffers] = useState([]);
@@ -18,6 +19,8 @@ function Offers({ cart, setCart, staffUser }) {
   const [couponInput, setCouponInput] = useState("");
   const [couponResult, setCouponResult] = useState(null);
   const [isChecking, setIsChecking] = useState(false);
+
+  const { t } = useLanguage();
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -93,7 +96,7 @@ function Offers({ cart, setCart, staffUser }) {
       if (snapshot.empty) {
         setCouponResult({
           status: "invalid",
-          message: "❌ هذا الرمز غير صحيح أو غير موجود",
+          message: t("couponInvalid"),
         });
       } else {
         const orderDoc = snapshot.docs[0];
@@ -102,7 +105,7 @@ function Offers({ cart, setCart, staffUser }) {
         if (order.couponUsed) {
           setCouponResult({
             status: "used",
-            message: `⚠️ هذا الكوبون مستخدم مسبقًا (طلب #${order.orderNumber})`,
+            message: `${t("couponUsedPrefix")} #${order.orderNumber})`,
           });
         } else {
           await updateDoc(doc(db, "orders", orderDoc.id), {
@@ -111,7 +114,7 @@ function Offers({ cart, setCart, staffUser }) {
 
           setCouponResult({
             status: "valid",
-            message: `✅ كوبون صالح — طلب #${order.orderNumber} (${order.name})`,
+            message: `${t("couponValidPrefix")} #${order.orderNumber} (${order.name})`,
           });
         }
       }
@@ -119,7 +122,7 @@ function Offers({ cart, setCart, staffUser }) {
       console.error(error);
       setCouponResult({
         status: "invalid",
-        message: "❌ حدث خطأ أثناء التحقق. تأكد من اتصالك بالإنترنت.",
+        message: t("couponCheckError"),
       });
     } finally {
       setCouponInput("");
@@ -131,19 +134,16 @@ function Offers({ cart, setCart, staffUser }) {
     <main className="page">
       {staffUser && (
         <div className="staff-login-box" style={{ marginBottom: "30px" }}>
-          <h3>تحقق من الكوبون</h3>
+          <h3>{t("couponCheckTitle")}</h3>
 
-          <p>
-            اكتب الرمز يدويًا أو مرّر الباركود مباشرة (سيُكتب
-            تلقائيًا).
-          </p>
+          <p>{t("couponCheckDescription")}</p>
 
           <form
             onSubmit={verifyCoupon}
             className="staff-login-form"
           >
             <label>
-              رمز الكوبون
+              {t("couponCodeLabel")}
               <input
                 type="text"
                 autoFocus
@@ -157,7 +157,7 @@ function Offers({ cart, setCart, staffUser }) {
               className="checkout-submit"
               disabled={isChecking}
             >
-              {isChecking ? "جارٍ التحقق..." : "تحقق"}
+              {isChecking ? t("couponChecking") : t("couponCheckButton")}
             </button>
           </form>
 
@@ -183,7 +183,7 @@ function Offers({ cart, setCart, staffUser }) {
       {!staffUser && (
         <div className="offers-cart-link">
           <Link to="/menu">
-            🛒 السلة (
+            🛒 {t("cartTitle")} (
             {cart.reduce(
               (total, item) => total + item.quantity,
               0
@@ -193,16 +193,14 @@ function Offers({ cart, setCart, staffUser }) {
         </div>
       )}
 
-      <span className="page-label">عروض بابل للمعجنات</span>
+      <span className="page-label">{t("offersPageLabel")}</span>
 
-      <h2>العروض</h2>
+      <h2>{t("offersTitle")}</h2>
 
-      <p>
-        استفد من عروض بابل للمعجنات المميزة.
-      </p>
+      <p>{t("offersDescription")}</p>
 
       {isLoading ? (
-        <p className="empty-cart">جارٍ تحميل العروض...</p>
+        <p className="empty-cart">{t("loadingOffers")}</p>
       ) : (
         <section className="offers-grid">
           {offers.map((offer) => (
@@ -212,20 +210,22 @@ function Offers({ cart, setCart, staffUser }) {
               </div>
 
               <div className="offer-content">
-                <span>عرض خاص</span>
+                <span>{t("specialOfferLabel")}</span>
 
                 <h3>{offer.title}</h3>
 
                 <p>{offer.description}</p>
 
                 <div className="offer-footer">
-                  <strong>{offer.price} ريال</strong>
+                  <strong>
+                    {offer.price} {t("currency")}
+                  </strong>
 
                   {!staffUser && (
                     <button
                       onClick={() => addOfferToCart(offer)}
                     >
-                      اطلب الآن
+                      {t("orderNowButton")}
                     </button>
                   )}
                 </div>
