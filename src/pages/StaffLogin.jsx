@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { auth } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function StaffLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const { t } = useLanguage();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -22,7 +25,7 @@ function StaffLogin() {
       // بعد نجاح الدخول، التطبيق يتعرف على المستخدم تلقائيًا
     } catch (err) {
       console.error(err);
-      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      setError(t("loginError"));
     } finally {
       setIsLoading(false);
     }
@@ -31,15 +34,15 @@ function StaffLogin() {
   return (
     <main className="page">
       <div className="staff-login-box">
-        <span className="page-label">دخول الموظفين</span>
+        <span className="page-label">{t("staffLoginPageLabel")}</span>
 
-        <h2>تسجيل الدخول</h2>
+        <h2>{t("staffLoginTitle")}</h2>
 
-        <p>هذه الشاشة مخصصة لموظفي الفروع والإدارة فقط.</p>
+        <p>{t("staffLoginDescription")}</p>
 
         <form onSubmit={handleSubmit} className="staff-login-form">
           <label>
-            البريد الإلكتروني
+            {t("emailFieldLabel")}
             <input
               type="email"
               value={email}
@@ -49,7 +52,7 @@ function StaffLogin() {
           </label>
 
           <label>
-            كلمة المرور
+            {t("passwordFieldLabel")}
             <input
               type="password"
               value={password}
@@ -64,7 +67,7 @@ function StaffLogin() {
             className="checkout-submit"
             disabled={isLoading}
           >
-            {isLoading ? "جارٍ الدخول..." : "دخول"}
+            {isLoading ? t("loggingIn") : t("loginButton")}
           </button>
         </form>
       </div>

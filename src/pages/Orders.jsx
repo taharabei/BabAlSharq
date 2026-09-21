@@ -2,6 +2,7 @@
 import { db } from "../firebase";
 import { branchNames } from "../staffAccounts";
 import { ORDER_STATUSES, ORDER_STATUS_LIST } from "../constants";
+import { useLanguage } from "../i18n/LanguageContext";
 import {
   collection,
   onSnapshot,
@@ -21,9 +22,19 @@ function Orders({ staffUser }) {
   const audioContextRef = useRef(null);
   const soundEnabledRef = useRef(false);
 
+  const { t } = useLanguage();
+
   const isAdmin = staffUser?.role === "admin";
 
   const filterOptions = ["الكل", ...ORDER_STATUS_LIST];
+
+  const statusLabels = {
+    "الكل": t("categoryAll"),
+    "جديد": t("statusNew"),
+    "قيد التحضير": t("statusPreparing"),
+    "جاهز": t("statusReady"),
+    "تم التسليم": t("statusDelivered"),
+  };
 
   const branchScopedOrders = isAdmin
     ? orders
@@ -146,14 +157,12 @@ function Orders({ staffUser }) {
       });
     } catch (error) {
       console.error("خطأ في تحديث حالة الطلب:", error);
-      alert("تعذر تحديث حالة الطلب. تأكد من اتصالك بالإنترنت.");
+      alert(t("updateStatusFailed"));
     }
   }
 
   async function deleteOrder(orderId) {
-    const confirmed = window.confirm(
-      "هل أنت متأكد من حذف هذا الطلب؟"
-    );
+    const confirmed = window.confirm(t("deleteOrderConfirm"));
 
     if (!confirmed) {
       return;
@@ -163,7 +172,7 @@ function Orders({ staffUser }) {
       await deleteDoc(doc(db, "orders", orderId));
     } catch (error) {
       console.error("خطأ في حذف الطلب:", error);
-      alert("تعذر حذف الطلب. تأكد من اتصالك بالإنترنت.");
+      alert(t("deleteOrderFailed"));
     }
   }
 
@@ -230,11 +239,11 @@ function Orders({ staffUser }) {
 
   return (
     <main className="page">
-      <span className="page-label">إدارة الطلبات</span>
+      <span className="page-label">{t("ordersPageLabel")}</span>
 
       <h2>
-        شاشة الكاشير —{" "}
-        {isAdmin ? "كل الفروع" : staffUser?.branch}
+        {t("cashierTitlePrefix")}{" "}
+        {isAdmin ? t("allBranchesLabel") : staffUser?.branch}
       </h2>
 
       <div
@@ -246,7 +255,7 @@ function Orders({ staffUser }) {
             : "cashier-summary"
         }
       >
-        الطلبات الجديدة:{" "}
+        {t("newOrdersLabel")}{" "}
         <strong>
           {
             branchScopedOrders.filter(
@@ -258,7 +267,7 @@ function Orders({ staffUser }) {
 
       {!soundEnabled ? (
         <button className="refresh-orders" onClick={enableSoundManually}>
-          🔊 تفعيل صوت التنبيه
+          {t("enableSoundButton")}
         </button>
       ) : (
         <span
@@ -267,11 +276,11 @@ function Orders({ staffUser }) {
             marginRight: "10px",
           }}
         >
-          ✓ الصوت مفعل
+          {t("soundEnabledLabel")}
         </span>
       )}
 
-      <p>إدارة الطلبات ومتابعة حالتها من شاشة الكاشير.</p>
+      <p>{t("cashierDescription")}</p>
 
       <div className="order-filters">
         {filterOptions.map((option) => (
@@ -280,7 +289,7 @@ function Orders({ staffUser }) {
             className={filter === option ? "active" : ""}
             onClick={() => setFilter(option)}
           >
-            {option}
+            {statusLabels[option] || option}
           </button>
         ))}
       </div>
@@ -291,7 +300,7 @@ function Orders({ staffUser }) {
             className={branchFilter === "الكل" ? "active" : ""}
             onClick={() => setBranchFilter("الكل")}
           >
-            كل الفروع
+            {t("allBranchesLabel")}
           </button>
 
           {branchNames.map((b) => (
@@ -307,13 +316,13 @@ function Orders({ staffUser }) {
       )}
 
       {filteredOrders.length === 0 ? (
-        <div className="empty-cart">لا توجد طلبات حتى الآن.</div>
+        <div className="empty-cart">{t("noOrdersYet")}</div>
       ) : (
         <div className="orders-list">
           {filteredOrders.map((order, index) => (
             <article className="order-card" key={order.id}>
               <div className="order-sequence">
-                طلب رقم {index + 1}
+                {t("orderSequencePrefix")} {index + 1}
               </div>
 
               <div className="order-card-header">
@@ -324,41 +333,43 @@ function Orders({ staffUser }) {
                 </div>
 
                 <span className={`order-status ${order.status}`}>
-                  {order.status}
+                  {statusLabels[order.status] || order.status}
                 </span>
               </div>
 
               <div className="order-card-info">
                 <p>
-                  <strong>الفرع:</strong> {order.branch || "غير محدد"}
+                  <strong>{t("branchLabel")}</strong>{" "}
+                  {order.branch || t("notSpecified")}
                 </p>
 
                 <p>
-                  <strong>العميل:</strong> {order.name}
+                  <strong>{t("customerLabel")}</strong> {order.name}
                 </p>
 
                 <p>
-                  <strong>الجوال:</strong> {order.phone}
+                  <strong>{t("phoneLabel")}</strong> {order.phone}
                 </p>
 
                 <p>
-                  <strong>طريقة الاستلام:</strong>{" "}
-                  {order.deliveryType || "استلام من المطعم"}
+                  <strong>{t("deliveryTypeLabel")}</strong>{" "}
+                  {order.deliveryType || t("pickupDefault")}
                 </p>
 
                 {order.address && (
                   <p>
-                    <strong>عنوان التوصيل:</strong> {order.address}
+                    <strong>{t("deliveryAddressLabel")}</strong>{" "}
+                    {order.address}
                   </p>
                 )}
 
                 <p>
-                  <strong>التاريخ:</strong> {order.date}
+                  <strong>{t("dateLabel")}</strong> {order.date}
                 </p>
 
                 {order.notes && (
                   <p>
-                    <strong>الملاحظات:</strong> {order.notes}
+                    <strong>{t("notesLabel")}</strong> {order.notes}
                   </p>
                 )}
               </div>
@@ -371,16 +382,18 @@ function Orders({ staffUser }) {
                     </span>
 
                     <strong>
-                      {item.price * item.quantity} ريال
+                      {item.price * item.quantity} {t("currency")}
                     </strong>
                   </div>
                 ))}
               </div>
 
               <div className="order-card-total">
-                <span>الإجمالي</span>
+                <span>{t("totalLabel")}</span>
 
-                <strong>{order.total} ريال</strong>
+                <strong>
+                  {order.total} {t("currency")}
+                </strong>
               </div>
 
               <div className="order-status-buttons">
@@ -391,7 +404,7 @@ function Orders({ staffUser }) {
                       changeStatus(order.id, ORDER_STATUSES.PREPARING)
                     }
                   >
-                    ▶ بدء التحضير
+                    {t("startPreparingButton")}
                   </button>
                 )}
 
@@ -402,7 +415,7 @@ function Orders({ staffUser }) {
                       changeStatus(order.id, ORDER_STATUSES.READY)
                     }
                   >
-                    ▶ الطلب جاهز
+                    {t("orderReadyButton")}
                   </button>
                 )}
 
@@ -413,7 +426,7 @@ function Orders({ staffUser }) {
                       changeStatus(order.id, ORDER_STATUSES.DELIVERED)
                     }
                   >
-                    ▶ تم التسليم
+                    {t("deliveredButton")}
                   </button>
                 )}
 
@@ -421,7 +434,7 @@ function Orders({ staffUser }) {
                   className="delete-order-button"
                   onClick={() => deleteOrder(order.id)}
                 >
-                  حذف الطلب
+                  {t("deleteOrderButton")}
                 </button>
               </div>
             </article>

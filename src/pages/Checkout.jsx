@@ -2,6 +2,7 @@ import { useState } from "react";
 import { db } from "../firebase";
 import { branchNames } from "../staffAccounts";
 import { ORDER_STATUSES } from "../constants";
+import { useLanguage } from "../i18n/LanguageContext";
 import {
   collection,
   addDoc,
@@ -22,6 +23,8 @@ function Checkout({ cart, setCart }) {
   const [couponCode, setCouponCode] = useState(null);
   const [confirmedTotal, setConfirmedTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { t } = useLanguage();
 
   const cartTotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -60,7 +63,7 @@ function Checkout({ cart, setCart }) {
     if (value.length === 0) {
       setPhoneError("");
     } else if (!isValidPhone(value)) {
-      setPhoneError("رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام");
+      setPhoneError(t("phoneInvalid"));
     } else {
       setPhoneError("");
     }
@@ -68,22 +71,22 @@ function Checkout({ cart, setCart }) {
 
   async function confirmOrder() {
     if (!name.trim()) {
-      alert("يرجى إدخال الاسم");
+      alert(t("nameRequired"));
       return;
     }
 
     if (!isValidPhone(phone)) {
-      setPhoneError("رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام");
+      setPhoneError(t("phoneInvalid"));
       return;
     }
 
     if (deliveryType === "توصيل" && !address.trim()) {
-      alert("يرجى إدخال عنوان التوصيل");
+      alert(t("addressRequired"));
       return;
     }
 
     if (cart.length === 0) {
-      alert("السلة فارغة");
+      alert(t("cartEmptyAlert"));
       return;
     }
 
@@ -143,9 +146,7 @@ function Checkout({ cart, setCart }) {
       setCart([]);
     } catch (error) {
       console.error("خطأ في إرسال الطلب:", error);
-      alert(
-        "حدث خطأ أثناء إرسال الطلب. تأكد من اتصالك بالإنترنت وحاول مرة أخرى."
-      );
+      alert(t("orderSubmitError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -155,37 +156,42 @@ function Checkout({ cart, setCart }) {
     return (
       <main className="page">
         <div className="order-success">
-          <span className="page-label">تم بنجاح</span>
+          <span className="page-label">{t("checkoutSuccessLabel")}</span>
 
-          <h2>تم استلام طلبك 🎉</h2>
+          <h2>{t("checkoutSuccessTitle")}</h2>
 
-          <p>شكرًا لك {name}، تم استلام طلبك بنجاح من {branch}.</p>
+          <p>
+            {t("checkoutThanksPrefix")} {name}
+            {t("checkoutThanksSuffix")} {branch}.
+          </p>
 
           <div className="order-number">
-            <span>رقم الطلب</span>
+            <span>{t("orderNumberLabel")}</span>
             <strong>#{orderNumber}</strong>
           </div>
 
           {couponCode && (
             <div className="order-number">
-              <span>رمز الكوبون</span>
+              <span>{t("couponCodeLabel2")}</span>
               <strong>{couponCode}</strong>
             </div>
           )}
 
           <div className="order-summary">
-            <span>إجمالي الطلب</span>
-            <strong>{confirmedTotal} ريال</strong>
+            <span>{t("orderTotalLabel")}</span>
+            <strong>
+              {confirmedTotal} {t("currency")}
+            </strong>
           </div>
 
           {couponCode ? (
-            <p>احتفظ برمز الكوبون وأرِه للكاشير عند استلام طلبك.</p>
+            <p>{t("keepCouponNote")}</p>
           ) : (
-            <p>احتفظ برقم الطلب لمتابعة طلبك.</p>
+            <p>{t("keepOrderNumberNote")}</p>
           )}
 
           <a href="/menu" className="back-to-menu">
-            العودة للقائمة
+            {t("backToMenuButton")}
           </a>
         </div>
       </main>
@@ -194,18 +200,18 @@ function Checkout({ cart, setCart }) {
 
   return (
     <main className="page">
-      <span className="page-label">إتمام الطلب</span>
+      <span className="page-label">{t("checkoutPageLabel")}</span>
 
-      <h2>تأكيد الطلب</h2>
+      <h2>{t("checkoutTitle")}</h2>
 
-      <p>أدخل بياناتك لإتمام طلبك من بابل للمعجنات.</p>
+      <p>{t("checkoutDescription")}</p>
 
       <div className="checkout-layout">
         <div className="checkout-cart">
-          <h3>مراجعة الطلب</h3>
+          <h3>{t("orderReviewTitle")}</h3>
 
           {cart.length === 0 ? (
-            <p>لا توجد أصناف في السلة.</p>
+            <p>{t("emptyCartCheckout")}</p>
           ) : (
             <>
               {cart.map((item) => (
@@ -214,28 +220,32 @@ function Checkout({ cart, setCart }) {
                     <strong>{item.name}</strong>
 
                     <span>
-                      {item.price} ريال × {item.quantity}
+                      {item.price} {t("currency")} × {item.quantity}
                     </span>
                   </div>
 
-                  <strong>{item.price * item.quantity} ريال</strong>
+                  <strong>
+                    {item.price * item.quantity} {t("currency")}
+                  </strong>
                 </div>
               ))}
 
               <div className="checkout-cart-total">
-                <span>الإجمالي</span>
+                <span>{t("totalLabel")}</span>
 
-                <strong>{cartTotal} ريال</strong>
+                <strong>
+                  {cartTotal} {t("currency")}
+                </strong>
               </div>
             </>
           )}
         </div>
 
         <div className="checkout-form">
-          <h3>بياناتك</h3>
+          <h3>{t("yourDataTitle")}</h3>
 
           <label>
-            الفرع
+            {t("branchFieldLabel")}
             <select
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
@@ -249,17 +259,17 @@ function Checkout({ cart, setCart }) {
           </label>
 
           <label>
-            الاسم
+            {t("nameFieldLabel")}
             <input
               type="text"
-              placeholder="اكتب اسمك"
+              placeholder={t("namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </label>
 
           <label>
-            رقم الجوال
+            {t("phoneFieldLabel")}
             <input
               type="tel"
               inputMode="numeric"
@@ -275,22 +285,22 @@ function Checkout({ cart, setCart }) {
           </label>
 
           <label>
-            طريقة الاستلام
+            {t("deliveryTypeFieldLabel")}
             <select
               value={deliveryType}
               onChange={(e) => setDeliveryType(e.target.value)}
             >
-              <option>استلام من المطعم</option>
-              <option>توصيل</option>
+              <option value="استلام من المطعم">{t("pickupOption")}</option>
+              <option value="توصيل">{t("deliveryOption")}</option>
             </select>
           </label>
 
           {deliveryType === "توصيل" && (
             <label>
-              عنوان التوصيل
+              {t("deliveryAddressFieldLabel")}
               <input
                 type="text"
-                placeholder="الحي، الشارع، رقم المبنى..."
+                placeholder={t("addressPlaceholder")}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
@@ -298,9 +308,9 @@ function Checkout({ cart, setCart }) {
           )}
 
           <label>
-            ملاحظات الطلب
+            {t("orderNotesLabel")}
             <textarea
-              placeholder="أي ملاحظات إضافية؟"
+              placeholder={t("notesPlaceholder")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -311,7 +321,7 @@ function Checkout({ cart, setCart }) {
             onClick={confirmOrder}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "جارٍ إرسال الطلب..." : "تأكيد الطلب"}
+            {isSubmitting ? t("submittingOrder") : t("confirmOrderButton")}
           </button>
         </div>
       </div>

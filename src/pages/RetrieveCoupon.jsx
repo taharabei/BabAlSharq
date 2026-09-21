@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function RetrieveCoupon() {
   const [phone, setPhone] = useState("");
   const [results, setResults] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  const { t } = useLanguage();
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -31,7 +34,7 @@ function RetrieveCoupon() {
       setSearched(true);
     } catch (error) {
       console.error(error);
-      alert("حدث خطأ أثناء البحث. تأكد من اتصالك بالإنترنت.");
+      alert(t("couponSearchError"));
     } finally {
       setIsSearching(false);
     }
@@ -39,19 +42,16 @@ function RetrieveCoupon() {
 
   return (
     <main className="page">
-      <span className="page-label">استرجاع الكوبون</span>
+      <span className="page-label">{t("retrieveCouponPageLabel")}</span>
 
-      <h2>نسيت رقم الكوبون؟</h2>
+      <h2>{t("retrieveCouponTitle")}</h2>
 
-      <p>
-        أدخل رقم جوالك اللي استخدمته وقت الطلب، وراح نطلعلك أي كوبونات
-        لسا ما استخدمتها.
-      </p>
+      <p>{t("retrieveCouponDescription")}</p>
 
       <div className="staff-login-box">
         <form onSubmit={handleSearch} className="staff-login-form">
           <label>
-            رقم الجوال
+            {t("phoneFieldLabel")}
             <input
               type="tel"
               inputMode="numeric"
@@ -67,18 +67,21 @@ function RetrieveCoupon() {
             className="checkout-submit"
             disabled={isSearching}
           >
-            {isSearching ? "جارٍ البحث..." : "ابحث عن الكوبون"}
+            {isSearching ? t("searchingLabel") : t("searchButton")}
           </button>
         </form>
 
         {searched && (
           <div style={{ marginTop: "25px" }}>
             {results.length === 0 ? (
-              <p>ما فيه كوبونات نشطة مرتبطة بهذا الرقم.</p>
+              <p>{t("noCouponsFound")}</p>
             ) : (
               results.map((order) => (
                 <div className="order-number" key={order.id}>
-                  <span>طلب #{order.orderNumber}</span>
+                  <span>
+                    {t("orderNumberPrefix")}
+                    {order.orderNumber}
+                  </span>
                   <strong>{order.couponCode}</strong>
                 </div>
               ))

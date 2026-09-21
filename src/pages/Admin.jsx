@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import * as XLSX from "xlsx";
+import { useLanguage } from "../i18n/LanguageContext";
 import {
   collection,
   onSnapshot,
@@ -47,6 +48,14 @@ function Admin({ staffUser }) {
   const [featuredIds, setFeaturedIds] = useState([]);
   const [isSavingFeatured, setIsSavingFeatured] = useState(false);
 
+  const { t } = useLanguage();
+
+  const categoryLabels = {
+    "المعجنات": t("categoryPastries"),
+    "الفطائر": t("categoryPies"),
+    "البيتزا": t("categoryPizza"),
+  };
+
   // دالة رفع الصور المباشرة إلى Cloudinary مع إظهار تفاصيل الخطأ
   async function handleCloudinaryUpload(file, setFormState, setUploadingState) {
     if (!file) return;
@@ -72,14 +81,14 @@ function Admin({ staffUser }) {
       } else {
         console.error("Cloudinary Error Details:", data);
         alert(
-          `خطأ من Cloudinary: ${
-            data.error?.message || "تأكد من أن الـ Preset نوعه Unsigned"
+          `${t("cloudinaryErrorPrefix")} ${
+            data.error?.message || t("cloudinaryErrorFallback")
           }`
         );
       }
     } catch (error) {
       console.error("Error uploading image:", error);
-      alert("فشل الاتصال بسيرفر رفع الصور.");
+      alert(t("imageUploadConnectionError"));
     } finally {
       setUploadingState(false);
     }
@@ -90,7 +99,7 @@ function Admin({ staffUser }) {
       setFeaturedIds(featuredIds.filter((id) => id !== itemId));
     } else {
       if (featuredIds.length >= 3) {
-        alert("يمكنك اختيار 3 وجبات كحد أقصى");
+        alert(t("maxThreeFeatured"));
         return;
       }
 
@@ -106,10 +115,10 @@ function Admin({ staffUser }) {
         featuredItemIds: featuredIds,
       });
 
-      alert("تم حفظ الوجبات المميزة بنجاح");
+      alert(t("saveFeaturedSuccess"));
     } catch (error) {
       console.error(error);
-      alert("حدث خطأ أثناء الحفظ. تأكد من اتصالك بالإنترنت.");
+      alert(t("saveGenericError"));
     } finally {
       setIsSavingFeatured(false);
     }
@@ -146,7 +155,7 @@ function Admin({ staffUser }) {
       XLSX.writeFile(workbook, "عملاء بابل للمعجنات.xlsx");
     } catch (error) {
       console.error(error);
-      alert("حدث خطأ أثناء التصدير. تأكد من اتصالك بالإنترنت.");
+      alert(t("exportError"));
     } finally {
       setIsExporting(false);
     }
@@ -215,7 +224,7 @@ function Admin({ staffUser }) {
     e.preventDefault();
 
     if (!itemForm.name.trim() || !itemForm.price) {
-      alert("يرجى إدخال الاسم والسعر على الأقل");
+      alert(t("nameAndPriceRequired"));
       return;
     }
 
@@ -237,12 +246,12 @@ function Admin({ staffUser }) {
       cancelItemForm();
     } catch (error) {
       console.error(error);
-      alert("حدث خطأ أثناء الحفظ. تأكد من اتصالك بالإنترنت.");
+      alert(t("saveGenericError"));
     }
   }
 
   async function deleteItem(itemId) {
-    const confirmed = window.confirm("هل أنت متأكد من حذف هذا الصنف؟");
+    const confirmed = window.confirm(t("deleteItemConfirm"));
 
     if (!confirmed) {
       return;
@@ -252,7 +261,7 @@ function Admin({ staffUser }) {
       await deleteDoc(doc(db, "menuItems", itemId));
     } catch (error) {
       console.error(error);
-      alert("تعذر حذف الصنف. تأكد من اتصالك بالإنترنت.");
+      alert(t("deleteItemFailed"));
     }
   }
 
@@ -277,7 +286,7 @@ function Admin({ staffUser }) {
     e.preventDefault();
 
     if (!offerForm.title.trim() || !offerForm.price) {
-      alert("يرجى إدخال العنوان والسعر على الأقل");
+      alert(t("titleAndPriceRequired"));
       return;
     }
 
@@ -298,12 +307,12 @@ function Admin({ staffUser }) {
       cancelOfferForm();
     } catch (error) {
       console.error(error);
-      alert("حدث خطأ أثناء الحفظ. تأكد من اتصالك بالإنترنت.");
+      alert(t("saveGenericError"));
     }
   }
 
   async function deleteOffer(offerId) {
-    const confirmed = window.confirm("هل أنت متأكد من حذف هذا العرض؟");
+    const confirmed = window.confirm(t("deleteOfferConfirm2"));
 
     if (!confirmed) {
       return;
@@ -313,24 +322,24 @@ function Admin({ staffUser }) {
       await deleteDoc(doc(db, "offers", offerId));
     } catch (error) {
       console.error(error);
-      alert("تعذر حذف العرض. تأكد من اتصالك بالإنترنت.");
+      alert(t("deleteOfferFailed"));
     }
   }
 
   return (
     <main className="page">
-      <span className="page-label">لوحة التحكم</span>
+      <span className="page-label">{t("adminPageLabel")}</span>
 
-      <h2>الإدارة</h2>
-
-      <p>مرحبًا {staffUser?.username}، تقدر تدير القائمة والعروض من هنا.</p>
-
-      <h3 style={{ marginTop: "40px" }}>تصدير بيانات العملاء</h3>
+      <h2>{t("adminTitle")}</h2>
 
       <p>
-        يقوم هذا الزر بتحميل ملف Excel يحتوي على اسم كل عميل، رقم جواله، تاريخ
-        تسجيله، وعدد طلباته.
+        {t("adminWelcomePrefix")} {staffUser?.username}
+        {t("adminWelcomeSuffix")}
       </p>
+
+      <h3 style={{ marginTop: "40px" }}>{t("exportCustomersTitle")}</h3>
+
+      <p>{t("exportCustomersDescription")}</p>
 
       <button
         className="checkout-submit"
@@ -338,15 +347,12 @@ function Admin({ staffUser }) {
         onClick={exportCustomersToExcel}
         disabled={isExporting}
       >
-        {isExporting ? "جارٍ التصدير..." : "📥 تصدير بيانات العملاء (Excel)"}
+        {isExporting ? t("exportingLabel") : t("exportCustomersButton")}
       </button>
 
-      <h3 style={{ marginTop: "40px" }}>الوجبات المميزة بالصفحة الرئيسية</h3>
+      <h3 style={{ marginTop: "40px" }}>{t("featuredItemsTitle")}</h3>
 
-      <p>
-        اختر حتى 3 وجبات تظهر في قسم "مقترحات" بالصفحة الرئيسية. إذا ما اخترت
-        شيء، بتظهر أول 3 وجبات بالقائمة تلقائيًا.
-      </p>
+      <p>{t("featuredItemsDescription")}</p>
 
       <div className="checkout-cart" style={{ maxWidth: "500px" }}>
         {menuItems.map((item) => (
@@ -365,7 +371,7 @@ function Admin({ staffUser }) {
               checked={featuredIds.includes(item.id)}
               onChange={() => toggleFeatured(item.id)}
             />
-            {item.name} — {item.price} ريال
+            {item.name} — {item.price} {t("currency")}
           </label>
         ))}
 
@@ -375,19 +381,19 @@ function Admin({ staffUser }) {
           onClick={saveFeaturedItems}
           disabled={isSavingFeatured}
         >
-          {isSavingFeatured ? "جارٍ الحفظ..." : "حفظ الوجبات المميزة"}
+          {isSavingFeatured ? t("savingLabel") : t("saveFeaturedButton")}
         </button>
       </div>
 
-      <h3 style={{ marginTop: "40px" }}>إدارة القائمة</h3>
+      <h3 style={{ marginTop: "40px" }}>{t("manageMenuTitle")}</h3>
 
       <div className="checkout-layout">
         <div className="checkout-form">
-          <h3>{editingItemId ? "تعديل صنف" : "إضافة صنف جديد"}</h3>
+          <h3>{editingItemId ? t("editItemTitle") : t("addItemTitle")}</h3>
 
           <form onSubmit={saveItem}>
             <label>
-              الاسم
+              {t("nameFieldLabel")}
               <input
                 type="text"
                 value={itemForm.name}
@@ -398,21 +404,21 @@ function Admin({ staffUser }) {
             </label>
 
             <label>
-              التصنيف
+              {t("categoryFieldLabel")}
               <select
                 value={itemForm.category}
                 onChange={(e) =>
                   setItemForm({ ...itemForm, category: e.target.value })
                 }
               >
-                <option>المعجنات</option>
-                <option>الفطائر</option>
-                <option>البيتزا</option>
+                <option value="المعجنات">{t("categoryPastries")}</option>
+                <option value="الفطائر">{t("categoryPies")}</option>
+                <option value="البيتزا">{t("categoryPizza")}</option>
               </select>
             </label>
 
             <label>
-              الوصف
+              {t("descriptionFieldLabel")}
               <input
                 type="text"
                 value={itemForm.description}
@@ -426,7 +432,7 @@ function Admin({ staffUser }) {
             </label>
 
             <label>
-              السعر (ريال)
+              {t("priceFieldLabel")}
               <input
                 type="number"
                 value={itemForm.price}
@@ -437,7 +443,7 @@ function Admin({ staffUser }) {
             </label>
 
             <label>
-              رفع صورة الصنف
+              {t("uploadItemImageLabel")}
               <input
                 type="file"
                 accept="image/*"
@@ -452,13 +458,13 @@ function Admin({ staffUser }) {
               />
               {uploadingItemImage && (
                 <span style={{ fontSize: "12px", color: "#28a745" }}>
-                  جارٍ رفع الصورة...
+                  {t("uploadingImageLabel")}
                 </span>
               )}
             </label>
 
             <label>
-              رابط الصورة (سيتم ملؤه تلقائيًا عند الرفع)
+              {t("imageUrlLabel")}
               <input
                 type="text"
                 placeholder="/assets/images/اسم-الصورة.png أو رابط Cloudinary"
@@ -472,11 +478,11 @@ function Admin({ staffUser }) {
             {itemForm.image && (
               <div style={{ marginBottom: "15px" }}>
                 <span style={{ fontSize: "12px", display: "block" }}>
-                  معاينة الصورة:
+                  {t("imagePreviewLabel")}
                 </span>
                 <img
                   src={itemForm.image}
-                  alt="معاينة الصنف"
+                  alt={t("itemPreviewAlt")}
                   style={{
                     width: "80px",
                     height: "80px",
@@ -493,7 +499,7 @@ function Admin({ staffUser }) {
               className="checkout-submit"
               disabled={uploadingItemImage}
             >
-              {editingItemId ? "حفظ التعديل" : "إضافة الصنف"}
+              {editingItemId ? t("saveEditButton") : t("addItemButton")}
             </button>
 
             {editingItemId && (
@@ -503,21 +509,24 @@ function Admin({ staffUser }) {
                 style={{ width: "100%", marginTop: "10px" }}
                 onClick={cancelItemForm}
               >
-                إلغاء التعديل
+                {t("cancelEditButton")}
               </button>
             )}
           </form>
         </div>
 
         <div className="checkout-cart">
-          <h3>الأصناف الحالية ({menuItems.length})</h3>
+          <h3>
+            {t("currentItemsPrefix")} ({menuItems.length})
+          </h3>
 
           {menuItems.map((item) => (
             <div className="checkout-cart-item" key={item.id}>
               <div>
                 <strong>{item.name}</strong>
                 <span>
-                  {item.category} — {item.price} ريال
+                  {categoryLabels[item.category] || item.category} —{" "}
+                  {item.price} {t("currency")}
                 </span>
               </div>
 
@@ -526,14 +535,14 @@ function Admin({ staffUser }) {
                   className="next-status-button"
                   onClick={() => startEditItem(item)}
                 >
-                  تعديل
+                  {t("editButton")}
                 </button>
 
                 <button
                   className="delete-order-button"
                   onClick={() => deleteItem(item.id)}
                 >
-                  حذف
+                  {t("deleteButton")}
                 </button>
               </div>
             </div>
@@ -541,15 +550,15 @@ function Admin({ staffUser }) {
         </div>
       </div>
 
-      <h3 style={{ marginTop: "50px" }}>إدارة العروض</h3>
+      <h3 style={{ marginTop: "50px" }}>{t("manageOffersTitle")}</h3>
 
       <div className="checkout-layout">
         <div className="checkout-form">
-          <h3>{editingOfferId ? "تعديل عرض" : "إضافة عرض جديد"}</h3>
+          <h3>{editingOfferId ? t("editOfferTitle") : t("addOfferTitle")}</h3>
 
           <form onSubmit={saveOffer}>
             <label>
-              عنوان العرض
+              {t("offerTitleFieldLabel")}
               <input
                 type="text"
                 value={offerForm.title}
@@ -560,7 +569,7 @@ function Admin({ staffUser }) {
             </label>
 
             <label>
-              الوصف
+              {t("descriptionFieldLabel")}
               <input
                 type="text"
                 value={offerForm.description}
@@ -574,7 +583,7 @@ function Admin({ staffUser }) {
             </label>
 
             <label>
-              السعر (ريال)
+              {t("priceFieldLabel")}
               <input
                 type="number"
                 value={offerForm.price}
@@ -585,7 +594,7 @@ function Admin({ staffUser }) {
             </label>
 
             <label>
-              رفع صورة العرض
+              {t("uploadOfferImageLabel")}
               <input
                 type="file"
                 accept="image/*"
@@ -600,13 +609,13 @@ function Admin({ staffUser }) {
               />
               {uploadingOfferImage && (
                 <span style={{ fontSize: "12px", color: "#28a745" }}>
-                  جارٍ رفع الصورة...
+                  {t("uploadingImageLabel")}
                 </span>
               )}
             </label>
 
             <label>
-              رابط الصورة (سيتم ملؤه تلقائيًا عند الرفع)
+              {t("imageUrlLabel")}
               <input
                 type="text"
                 placeholder="/assets/images/اسم-الصورة.png أو رابط Cloudinary"
@@ -620,11 +629,11 @@ function Admin({ staffUser }) {
             {offerForm.image && (
               <div style={{ marginBottom: "15px" }}>
                 <span style={{ fontSize: "12px", display: "block" }}>
-                  معاينة الصورة:
+                  {t("imagePreviewLabel")}
                 </span>
                 <img
                   src={offerForm.image}
-                  alt="معاينة العرض"
+                  alt={t("offerPreviewAlt")}
                   style={{
                     width: "80px",
                     height: "80px",
@@ -641,7 +650,7 @@ function Admin({ staffUser }) {
               className="checkout-submit"
               disabled={uploadingOfferImage}
             >
-              {editingOfferId ? "حفظ التعديل" : "إضافة العرض"}
+              {editingOfferId ? t("saveEditButton") : t("addOfferButton")}
             </button>
 
             {editingOfferId && (
@@ -651,20 +660,24 @@ function Admin({ staffUser }) {
                 style={{ width: "100%", marginTop: "10px" }}
                 onClick={cancelOfferForm}
               >
-                إلغاء التعديل
+                {t("cancelEditButton")}
               </button>
             )}
           </form>
         </div>
 
         <div className="checkout-cart">
-          <h3>العروض الحالية ({offers.length})</h3>
+          <h3>
+            {t("currentOffersPrefix")} ({offers.length})
+          </h3>
 
           {offers.map((offer) => (
             <div className="checkout-cart-item" key={offer.id}>
               <div>
                 <strong>{offer.title}</strong>
-                <span>{offer.price} ريال</span>
+                <span>
+                  {offer.price} {t("currency")}
+                </span>
               </div>
 
               <div style={{ display: "flex", gap: "8px" }}>
@@ -672,14 +685,14 @@ function Admin({ staffUser }) {
                   className="next-status-button"
                   onClick={() => startEditOffer(offer)}
                 >
-                  تعديل
+                  {t("editButton")}
                 </button>
 
                 <button
                   className="delete-order-button"
                   onClick={() => deleteOffer(offer.id)}
                 >
-                  حذف
+                  {t("deleteButton")}
                 </button>
               </div>
             </div>

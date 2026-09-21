@@ -6,11 +6,20 @@ import {
   doc,
   deleteDoc,
 } from "firebase/firestore";
+import { useLanguage } from "../i18n/LanguageContext";
 
 function Customers() {
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
+  const { t } = useLanguage();
+
+  const statusLabels = {
+    "جديد": t("statusNew"),
+    "قيد التحضير": t("statusPreparing"),
+    "جاهز": t("statusReady"),
+    "تم التسليم": t("statusDelivered"),
+  };
 
   useEffect(() => {
     const unsubscribeCustomers = onSnapshot(
@@ -50,9 +59,7 @@ function Customers() {
   }, []);
 
   async function deleteCustomer(customerId) {
-    const confirmed = window.confirm(
-      "هل أنت متأكد من حذف هذا العميل؟"
-    );
+    const confirmed = window.confirm(t("deleteCustomerConfirm"));
 
     if (!confirmed) {
       return;
@@ -62,7 +69,7 @@ function Customers() {
       await deleteDoc(doc(db, "customers", customerId));
     } catch (error) {
       console.error("خطأ في حذف العميل:", error);
-      alert("تعذر حذف العميل. تأكد من اتصالك بالإنترنت.");
+      alert(t("deleteCustomerFailed"));
     }
   }
 
@@ -86,20 +93,20 @@ function Customers() {
 
   return (
     <main className="page">
-      <span className="page-label">إدارة العملاء</span>
+      <span className="page-label">{t("customersPageLabel")}</span>
 
-      <h2>العملاء</h2>
+      <h2>{t("customersTitle")}</h2>
 
-      <p>هنا تظهر بيانات العملاء المسجلين في بابل للمعجنات.</p>
+      <p>{t("customersDescription")}</p>
 
       <div className="customers-summary">
         <div className="customer-stat">
-          <span>إجمالي العملاء</span>
+          <span>{t("totalCustomersLabel")}</span>
           <strong>{customers.length}</strong>
         </div>
 
         <div className="customer-stat">
-          <span>نتائج البحث</span>
+          <span>{t("searchResultsLabel")}</span>
           <strong>{filteredCustomers.length}</strong>
         </div>
       </div>
@@ -108,25 +115,23 @@ function Customers() {
         <div className="customers-search">
           <input
             type="text"
-            placeholder="ابحث بالاسم أو رقم الجوال أو المدينة"
+            placeholder={t("searchCustomersPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
 
           {search && (
             <button onClick={() => setSearch("")}>
-              مسح البحث
+              {t("clearSearchButton")}
             </button>
           )}
         </div>
       )}
 
       {customers.length === 0 ? (
-        <div className="empty-cart">لا يوجد عملاء حتى الآن.</div>
+        <div className="empty-cart">{t("noCustomersYet")}</div>
       ) : filteredCustomers.length === 0 ? (
-        <div className="empty-cart">
-          لا توجد نتائج مطابقة للبحث.
-        </div>
+        <div className="empty-cart">{t("noSearchResults")}</div>
       ) : (
         <div className="customers-list">
           {filteredCustomers.map((customer, index) => {
@@ -151,23 +156,24 @@ function Customers() {
                   <p>📱 {customer.phone}</p>
 
                   <p>
-                    📍 {customer.city || "المدينة غير مسجلة"}
+                    📍 {customer.city || t("cityNotRegistered")}
                   </p>
 
                   <span>
-                    تاريخ التسجيل: {customer.date || "غير محدد"}
+                    {t("registrationDateLabel")}{" "}
+                    {customer.date || t("notSpecifiedFem")}
                   </span>
 
                   <div className="customer-orders-info">
                     <span className="customer-orders-count">
-                      🧾 عدد الطلبات: {customerOrders.length}
+                      {t("orderCountLabel")} {customerOrders.length}
                     </span>
 
                     {lastOrder && (
                       <span className="customer-last-order">
-                        آخر طلب: {lastOrder.date} —{" "}
-                        {lastOrder.total} ريال (
-                        {lastOrder.status})
+                        {t("lastOrderLabel")} {lastOrder.date} —{" "}
+                        {lastOrder.total} {t("currency")} (
+                        {statusLabels[lastOrder.status] || lastOrder.status})
                       </span>
                     )}
                   </div>
@@ -177,7 +183,7 @@ function Customers() {
                   className="customer-delete-button"
                   onClick={() => deleteCustomer(customer.id)}
                 >
-                  حذف
+                  {t("deleteButton")}
                 </button>
               </article>
             );
