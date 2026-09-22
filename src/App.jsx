@@ -137,6 +137,126 @@ function BottomNav({ cart, t }) {
   );
 }
 
+// ===== الشريط الجانبي (يحل محل القائمة المنسدلة القديمة) =====
+
+function Sidebar({
+  menuOpen,
+  setMenuOpen,
+  staffUser,
+  handleLogout,
+  t,
+  language,
+  toggleLanguage,
+}) {
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
+  return (
+    <>
+      <div
+        className={
+          "sidebar-overlay" + (menuOpen ? " is-visible" : "")
+        }
+        onClick={closeMenu}
+      />
+
+      <aside className={"sidebar" + (menuOpen ? " is-open" : "")}>
+        <div className="sidebar-header">
+          <div className="sidebar-brand">
+            <img src="/logo.jpg" alt={t("brandName")} />
+            <span>{t("brandName")}</span>
+          </div>
+
+          <button
+            className="sidebar-close"
+            onClick={closeMenu}
+            aria-label={t("openMenu")}
+          >
+            ✕
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          {!staffUser && (
+            <>
+              <Link to="/" onClick={closeMenu}>
+                <span>🏠</span>
+                {t("navHome")}
+              </Link>
+              <Link to="/menu" onClick={closeMenu}>
+                <span>📋</span>
+                {t("navMenu")}
+              </Link>
+              <Link to="/offers" onClick={closeMenu}>
+                <span>🎁</span>
+                {t("navOffers")}
+              </Link>
+              <Link to="/retrieve-coupon" onClick={closeMenu}>
+                <span>🎫</span>
+                {t("navRetrieveCoupon")}
+              </Link>
+            </>
+          )}
+
+          {staffUser && (
+            <>
+              <Link to="/orders" onClick={closeMenu}>
+                <span>🧾</span>
+                {t("navOrders")}
+              </Link>
+              <Link to="/customers" onClick={closeMenu}>
+                <span>👥</span>
+                {t("navCustomers")}
+              </Link>
+              <Link to="/offers" onClick={closeMenu}>
+                <span>🎁</span>
+                {t("navCheckCoupon")}
+              </Link>
+
+              {staffUser.role === "admin" && (
+                <>
+                  <Link to="/admin" onClick={closeMenu}>
+                    <span>⚙️</span>
+                    {t("navAdmin")}
+                  </Link>
+                  <Link to="/" onClick={closeMenu}>
+                    <span>🏠</span>
+                    {t("navHome")}
+                  </Link>
+                  <Link to="/menu" onClick={closeMenu}>
+                    <span>📋</span>
+                    {t("navMenu")}
+                  </Link>
+                </>
+              )}
+            </>
+          )}
+        </nav>
+
+        <div className="sidebar-footer">
+          <button className="sidebar-lang-button" onClick={toggleLanguage}>
+            🌐 {language === "ar" ? "English" : "العربية"}
+          </button>
+
+          {staffUser && (
+            <button
+              className="sidebar-logout-button"
+              onClick={() => {
+                handleLogout();
+                closeMenu();
+              }}
+            >
+              🚪 {t("logoutPrefix")} (
+              {staffUser.branch === "admin" ? t("admin") : staffUser.branch})
+            </button>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+}
+
 function AppLayout({ staffUser, handleLogout, cart, setCart, isAuthLoading }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
@@ -171,108 +291,27 @@ function AppLayout({ staffUser, handleLogout, cart, setCart, isAuthLoading }) {
         </Link>
 
         {!isStaffLoginScreen && (
-          <>
-            <nav className={menuOpen ? "nav nav-open" : "nav"}>
-              {!staffUser && (
-                <>
-                  <Link to="/" onClick={() => setMenuOpen(false)}>
-                    {t("navHome")}
-                  </Link>
-                  <Link to="/menu" onClick={() => setMenuOpen(false)}>
-                    {t("navMenu")}
-                  </Link>
-                  <Link to="/offers" onClick={() => setMenuOpen(false)}>
-                    {t("navOffers")}
-                  </Link>
-                  <Link
-                    to="/retrieve-coupon"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    {t("navRetrieveCoupon")}
-                  </Link>
-                </>
-              )}
-
-              {staffUser && (
-                <>
-                  <Link to="/orders" onClick={() => setMenuOpen(false)}>
-                    {t("navOrders")}
-                  </Link>
-                  <Link
-                    to="/customers"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    {t("navCustomers")}
-                  </Link>
-                  <Link to="/offers" onClick={() => setMenuOpen(false)}>
-                    {t("navCheckCoupon")}
-                  </Link>
-
-                  {staffUser.role === "admin" && (
-                    <>
-                      <Link
-                        to="/admin"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        {t("navAdmin")}
-                      </Link>
-                      <Link
-                        to="/"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        {t("navHome")}
-                      </Link>
-                      <Link
-                        to="/menu"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        {t("navMenu")}
-                      </Link>
-                    </>
-                  )}
-
-                  <button
-                    className="staff-logout-link"
-                    onClick={() => {
-                      handleLogout();
-                      setMenuOpen(false);
-                    }}
-                  >
-                    {t("logoutPrefix")} (
-                    {staffUser.branch === "admin"
-                      ? t("admin")
-                      : staffUser.branch}
-                    )
-                  </button>
-                </>
-              )}
-
-              <button
-                className="lang-toggle-button"
-                onClick={toggleLanguage}
-                style={{
-                  background: "transparent",
-                  border: "1px solid currentColor",
-                  borderRadius: "6px",
-                  padding: "4px 10px",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                }}
-              >
-                {language === "ar" ? "EN" : "عربي"}
-              </button>
-            </nav>
-
-            <button
-              className="menu-toggle"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label={t("openMenu")}
-            >
-              ☰
-            </button>
-          </>
+          <button
+            className="menu-toggle"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={t("openMenu")}
+          >
+            ☰
+          </button>
         )}
       </header>
+
+      {!isStaffLoginScreen && (
+        <Sidebar
+          menuOpen={menuOpen}
+          setMenuOpen={setMenuOpen}
+          staffUser={staffUser}
+          handleLogout={handleLogout}
+          t={t}
+          language={language}
+          toggleLanguage={toggleLanguage}
+        />
+      )}
 
       <Routes>
         <Route path="/" element={<Home />} />
