@@ -20,6 +20,8 @@ function Home() {
   const [offers, setOffers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSlide, setActiveSlide] = useState(0);
+  const [homeContent, setHomeContent] = useState(null);
+  const [heroBanners, setHeroBanners] = useState([]);
 
   const { t, language } = useLanguage();
 
@@ -39,10 +41,15 @@ function Home() {
     const unsubscribeSettings = onSnapshot(
       doc(db, "settings", "home"),
       (docSnap) => {
-        if (docSnap.exists() && docSnap.data().featuredItemIds) {
-          setFeaturedIds(docSnap.data().featuredItemIds);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setFeaturedIds(data.featuredItemIds || []);
+          setHomeContent(data.homeContent || null);
+          setHeroBanners(data.heroBanners || []);
         } else {
           setFeaturedIds([]);
+          setHomeContent(null);
+          setHeroBanners([]);
         }
       }
     );
@@ -65,6 +72,12 @@ function Home() {
       unsubscribeOffers();
     };
   }, []);
+
+  // ===== نص هجين: قيمة الأدمن إن وجدت، وإلا النص الافتراضي =====
+  function heroText(field, fallbackKey) {
+    const override = homeContent?.[language]?.[field];
+    return override && override.trim() ? override : t(fallbackKey);
+  }
 
   // ===== التحية حسب الوقت =====
   const currentHour = new Date().getHours();
@@ -99,18 +112,16 @@ function Home() {
       ]
     : [];
 
-  // ===== بانر العروض المتحرك =====
-  const carouselSlides = offers.filter((offer) => offer.image);
-
+  // ===== بانر الأدمن المتحرك (صور فقط) =====
   useEffect(() => {
-    if (carouselSlides.length < 2) return;
+    if (heroBanners.length < 2) return;
 
     const interval = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % carouselSlides.length);
+      setActiveSlide((prev) => (prev + 1) % heroBanners.length);
     }, 4500);
 
     return () => clearInterval(interval);
-  }, [carouselSlides.length]);
+  }, [heroBanners.length]);
 
   return (
     <main className="home-page">
@@ -166,38 +177,26 @@ function Home() {
 
       {!query && (
         <>
-          {carouselSlides.length > 0 ? (
+          {heroBanners.length > 0 ? (
             <div className="hero-carousel">
-              <div className="hero-carousel-track">
-                {carouselSlides.map((offer, index) => (
-                  <div
+              <div className="hero-carousel-track hero-carousel-track-image-only">
+                {heroBanners.map((url, index) => (
+                  <Link
+                    to="/offers"
                     className={
-                      "hero-carousel-slide" +
+                      "hero-carousel-slide hero-carousel-slide-image-only" +
                       (index === activeSlide ? " is-active" : "")
                     }
-                    key={offer.id}
+                    key={index}
                   >
-                    <div>
-                      <span className="carousel-eyebrow">
-                        {t("navOffers")}
-                      </span>
-                      <h3>{offer.title}</h3>
-                      <p>{offer.description}</p>
-                      <Link to="/offers" className="hero-button">
-                        {t("heroButton")}
-                      </Link>
-                    </div>
-
-                    <div className="carousel-image">
-                      <img src={offer.image} alt={offer.title} />
-                    </div>
-                  </div>
+                    <img src={url} alt={`banner-${index}`} />
+                  </Link>
                 ))}
               </div>
 
-              {carouselSlides.length > 1 && (
+              {heroBanners.length > 1 && (
                 <div className="carousel-dots">
-                  {carouselSlides.map((_, index) => (
+                  {heroBanners.map((_, index) => (
                     <button
                       key={index}
                       className={index === activeSlide ? "is-active" : ""}
@@ -214,15 +213,15 @@ function Home() {
                 <span className="hero-label">{t("heroLabel")}</span>
 
                 <h2>
-                  {t("heroTitleLine1")}
+                  {heroText("heroTitleLine1", "heroTitleLine1")}
                   <br />
-                  {t("heroTitleLine2")}
+                  {heroText("heroTitleLine2", "heroTitleLine2")}
                 </h2>
 
-                <p>{t("heroDescription")}</p>
+                <p>{heroText("heroDescription", "heroDescription")}</p>
 
                 <Link to="/menu" className="hero-button">
-                  {t("heroButton")}
+                  {heroText("heroButton", "heroButton")}
                 </Link>
               </div>
 
