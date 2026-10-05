@@ -2573,4 +2573,237 @@ footer p {
   height: 100%;
   object-fit: cover;
   border-radius: 24px;
+}/* =========================
+   HERO ACTIONS (زر ثانوي)
+========================= */
+
+.hero-actions-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.hero-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 26px;
+  border-radius: 10px;
+  border: 1px solid var(--color-primary-dark);
+  background: transparent;
+  color: var(--color-primary-dark);
+  font-size: 15px;
+  font-weight: 700;
+  transition: 0.2s;
+}
+
+.hero-button-secondary:hover {
+  background: var(--color-primary-dark);
+  color: #fff;
+}
+
+/* =========================
+   QUICK ACTIONS
+========================= */
+
+.quick-actions-section {
+  margin-top: -10px;
+}
+
+.quick-actions-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.quick-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quick-action-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(36, 26, 20, 0.07);
+}
+
+.quick-action-icon {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-accent-light);
+  font-size: 21px;
+}
+
+.quick-action-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* =========================
+   CATEGORIES SECTION HEADING (مع زر عرض الكل)
+========================= */
+
+.section-heading-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-view-all-link {
+  flex-shrink: 0;
+  padding-bottom: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  white-space: nowrap;
+}
+
+.section-view-all-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* =========================
+   RESPONSIVE (Phase A)
+========================= */
+
+@media (max-width: 650px) {
+  .quick-actions-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .section-heading-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .hero-actions-group {
+    flex-direction: column;
+  }
+
+  .hero-button-secondary {
+    text-align: center;
+    justify-content: center;
+  }
+}/* =========================
+   CUSTOMER ACCOUNT TABS
+========================= */
+
+.account-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.account-tab-button {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.account-tab-button.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.account-guest-link {
+  display: block;
+  margin-top: 18px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.account-guest-link:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}/* =========================
+   SIDEBAR CUSTOMER INFO
+========================= */
+
+.sidebar-customer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.sidebar-customer-info span {
+  font-size: 19px;
+}/* =========================
+   FORGOT PASSWORD LINK
+========================= */
+
+.account-forgot-link {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: center;
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.account-forgot-link:hover {
+  text-decoration: underline;
+}/* =========================
+   SIDEBAR NAV BUTTON (زر بدل رابط)
+========================= */
+
+.sidebar-nav-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 12px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 15px;
+  font-family: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.sidebar-nav-button span {
+  font-size: 19px;
+}
+
+.sidebar-nav-button:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+
+.sidebar-nav-button:disabled {
+  color: var(--color-primary-dark);
+  cursor: default;
 }

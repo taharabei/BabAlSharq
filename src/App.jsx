@@ -6,10 +6,12 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
 import { staffProfiles } from "./staffAccounts";
 import { useLanguage } from "./i18n/LanguageContext";
+import { subscribeToPushNotifications } from "./push";
 
 import Home from "./pages/Home";
 import Menu from "./pages/Menu";
@@ -20,6 +22,8 @@ import Checkout from "./pages/Checkout";
 import StaffLogin from "./pages/StaffLogin";
 import Admin from "./pages/Admin";
 import RetrieveCoupon from "./pages/RetrieveCoupon";
+import CustomerLogin from "./pages/CustomerLogin";
+import MyOrders from "./pages/MyOrders";
 
 import "./App.css";
 
@@ -143,13 +147,43 @@ function Sidebar({
   menuOpen,
   setMenuOpen,
   staffUser,
+  customerUser,
   handleLogout,
   t,
   language,
   toggleLanguage,
 }) {
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  useEffect(() => {
+    setNotificationsEnabled(
+      localStorage.getItem("pushNotificationsEnabled") === "true"
+    );
+  }, []);
+
   function closeMenu() {
     setMenuOpen(false);
+  }
+
+  async function handleEnableNotifications() {
+    setIsSubscribing(true);
+
+    const result = await subscribeToPushNotifications(customerUser?.uid);
+
+    if (result.success) {
+      localStorage.setItem("pushNotificationsEnabled", "true");
+      setNotificationsEnabled(true);
+      alert(t("notificationsEnabledSuccess"));
+    } else if (result.reason === "denied") {
+      alert(t("notificationsPermissionDenied"));
+    } else if (result.reason === "unsupported") {
+      alert(t("notificationsUnsupportedError"));
+    } else {
+      alert(t("notificationsGenericError"));
+    }
+
+    setIsSubscribing(false);
   }
 
   return (
@@ -196,6 +230,34 @@ function Sidebar({
                 <span>🎫</span>
                 {t("navRetrieveCoupon")}
               </Link>
+              <Link to="/my-orders" onClick={closeMenu}>
+                <span>🧾</span>
+                {t("navMyOrders")}
+              </Link>
+
+              <button
+                type="button"
+                className="sidebar-nav-button"
+                onClick={handleEnableNotifications}
+                disabled={notificationsEnabled || isSubscribing}
+              >
+                <span>🔔</span>
+                {notificationsEnabled
+                  ? t("notificationsEnabledButton")
+                  : t("enableNotificationsButton")}
+              </button>
+
+              {customerUser ? (
+                <div className="sidebar-customer-info">
+                  <span>👤</span>
+                  {customerUser.name || customerUser.email}
+                </div>
+              ) : (
+                <Link to="/account" onClick={closeMenu}>
+                  <span>👤</span>
+                  {t("navAccount")}
+                </Link>
+              )}
             </>
           )}
 
@@ -239,7 +301,7 @@ function Sidebar({
             🌐 {language === "ar" ? "English" : "العربية"}
           </button>
 
-          {staffUser && (
+          {(staffUser || customerUser) && (
             <button
               className="sidebar-logout-button"
               onClick={() => {
@@ -247,8 +309,11 @@ function Sidebar({
                 closeMenu();
               }}
             >
-              🚪 {t("logoutPrefix")} (
-              {staffUser.branch === "admin" ? t("admin") : staffUser.branch})
+              🚪 {t("logoutPrefix")}
+              {staffUser &&
+                ` (${
+                  staffUser.branch === "admin" ? t("admin") : staffUser.branch
+                })`}
             </button>
           )}
         </div>
@@ -257,7 +322,14 @@ function Sidebar({
   );
 }
 
-function AppLayout({ staffUser, handleLogout, cart, setCart, isAuthLoading }) {
+function AppLayout({
+  staffUser,
+  customerUser,
+  handleLogout,
+  cart,
+  setCart,
+  isAuthLoading,
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const { dir, toggleLanguage, t, language } = useLanguage();
@@ -306,6 +378,7 @@ function AppLayout({ staffUser, handleLogout, cart, setCart, isAuthLoading }) {
           menuOpen={menuOpen}
           setMenuOpen={setMenuOpen}
           staffUser={staffUser}
+          customerUser={customerUser}
           handleLogout={handleLogout}
           t={t}
           language={language}
@@ -378,6 +451,7 @@ function AppLayout({ staffUser, handleLogout, cart, setCart, isAuthLoading }) {
             <Checkout
               cart={cart}
               setCart={setCart}
+              customerUser={customerUser}
             />
           }
         />
@@ -385,6 +459,16 @@ function AppLayout({ staffUser, handleLogout, cart, setCart, isAuthLoading }) {
         <Route
           path="/retrieve-coupon"
           element={<RetrieveCoupon />}
+        />
+
+        <Route
+          path="/account"
+          element={<CustomerLogin />}
+        />
+
+        <Route
+          path="/my-orders"
+          element={<MyOrders customerUser={customerUser} />}
         />
       </Routes>
 
@@ -401,6 +485,8 @@ function AppLayout({ staffUser, handleLogout, cart, setCart, isAuthLoading }) {
 function App() {
   const [cart, setCart] = useState([]);
   const [staffUser, setStaffUser] = useState(null);
+  const [customerUser, setCustomerUser] = useState(null);
+  const [customerAuthUid, setCustomerAuthUid] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
@@ -411,8 +497,20 @@ function App() {
           email: user.email,
           ...staffProfiles[user.uid],
         });
+        setCustomerAuthUid(null);
+        setCustomerUser(null);
+      } else if (user) {
+        setStaffUser(null);
+        setCustomerAuthUid(user.uid);
+        setCustomerUser((prev) =>
+          prev && prev.uid === user.uid
+            ? prev
+            : { uid: user.uid, email: user.email, name: "" }
+        );
       } else {
         setStaffUser(null);
+        setCustomerAuthUid(null);
+        setCustomerUser(null);
       }
 
       setIsAuthLoading(false);
@@ -420,6 +518,22 @@ function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // ===== متابعة بيانات حساب العميل (اسم/جوال) بشكل حي =====
+  useEffect(() => {
+    if (!customerAuthUid) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, "customerAccounts", customerAuthUid),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setCustomerUser({ uid: customerAuthUid, ...docSnap.data() });
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, [customerAuthUid]);
 
   async function handleLogout() {
     try {
@@ -433,6 +547,7 @@ function App() {
     <BrowserRouter>
       <AppLayout
         staffUser={staffUser}
+        customerUser={customerUser}
         handleLogout={handleLogout}
         cart={cart}
         setCart={setCart}

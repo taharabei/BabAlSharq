@@ -5,8 +5,22 @@ import { useLanguage } from "../../i18n/LanguageContext";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 
 const emptyContent = {
-  ar: { heroTitleLine1: "", heroTitleLine2: "", heroDescription: "", heroButton: "" },
-  en: { heroTitleLine1: "", heroTitleLine2: "", heroDescription: "", heroButton: "" },
+  ar: {
+    heroTitleLine1: "",
+    heroTitleLine2: "",
+    heroDescription: "",
+    heroButton: "",
+    brandStoryTitle: "",
+    brandStoryText: "",
+  },
+  en: {
+    heroTitleLine1: "",
+    heroTitleLine2: "",
+    heroDescription: "",
+    heroButton: "",
+    brandStoryTitle: "",
+    brandStoryText: "",
+  },
 };
 
 const MAX_BANNERS = 4;
@@ -126,6 +140,27 @@ function AdminHomeContentSection() {
             type="text"
             value={content[lang].heroButton}
             onChange={(e) => updateField(lang, "heroButton", e.target.value)}
+          />
+        </label>
+
+        <label>
+          {t("brandStoryTitleFieldLabel")}
+          <input
+            type="text"
+            value={content[lang].brandStoryTitle}
+            onChange={(e) =>
+              updateField(lang, "brandStoryTitle", e.target.value)
+            }
+          />
+        </label>
+
+        <label>
+          {t("brandStoryTextFieldLabel")}
+          <textarea
+            value={content[lang].brandStoryText}
+            onChange={(e) =>
+              updateField(lang, "brandStoryText", e.target.value)
+            }
           />
         </label>
       </div>

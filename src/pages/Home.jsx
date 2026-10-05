@@ -14,6 +14,13 @@ const categoryIcons = {
   "البيتزا": "🍕",
 };
 
+// ربط اسم التصنيف (المخزن بالعربي دائماً بقاعدة البيانات) بمفتاح الترجمة المناسب
+const categoryTranslationKeys = {
+  "المعجنات": "categoryPastries",
+  "الفطائر": "categoryPies",
+  "البيتزا": "categoryPizza",
+};
+
 function Home() {
   const [allItems, setAllItems] = useState([]);
   const [featuredIds, setFeaturedIds] = useState([]);
@@ -123,6 +130,14 @@ function Home() {
     return () => clearInterval(interval);
   }, [heroBanners.length]);
 
+  // ===== اختصارات الوصول السريع =====
+  const quickActions = [
+    { icon: "🛒", labelKey: "orderNowButton", to: "/menu" },
+    { icon: "🎁", labelKey: "navOffers", to: "/offers" },
+    { icon: "📋", labelKey: "navMenu", to: "/menu" },
+    { icon: "📍", labelKey: "quickActionBranches", to: "#branches" },
+  ];
+
   return (
     <main className="home-page">
 
@@ -220,9 +235,14 @@ function Home() {
 
                 <p>{heroText("heroDescription", "heroDescription")}</p>
 
-                <Link to="/menu" className="hero-button">
-                  {heroText("heroButton", "heroButton")}
-                </Link>
+                <div className="hero-actions-group">
+                  <Link to="/menu" className="hero-button">
+                    {heroText("heroButton", "heroButton")}
+                  </Link>
+                  <Link to="/menu" className="hero-button-secondary">
+                    {t("discoverLabel")} {t("categoriesTitle")}
+                  </Link>
+                </div>
               </div>
 
               <div className="hero-placeholder">
@@ -231,14 +251,56 @@ function Home() {
             </section>
           )}
 
-          <div className="category-chips">
-            {Object.entries(categoryIcons).map(([category, icon]) => (
-              <Link to="/menu" className="category-chip" key={category}>
-                <span>{icon}</span>
-                {category}
+          <section className="home-section quick-actions-section">
+            <div className="quick-actions-row">
+              {quickActions.map((action) =>
+                action.to.startsWith("#") ? (
+                  <a
+                    href={action.to}
+                    className="quick-action-item"
+                    key={action.labelKey}
+                  >
+                    <span className="quick-action-icon">{action.icon}</span>
+                    <span className="quick-action-label">
+                      {t(action.labelKey)}
+                    </span>
+                  </a>
+                ) : (
+                  <Link
+                    to={action.to}
+                    className="quick-action-item"
+                    key={action.labelKey}
+                  >
+                    <span className="quick-action-icon">{action.icon}</span>
+                    <span className="quick-action-label">
+                      {t(action.labelKey)}
+                    </span>
+                  </Link>
+                )
+              )}
+            </div>
+          </section>
+
+          <section className="home-section categories-section">
+            <div className="section-heading section-heading-row">
+              <div>
+                <span>{t("discoverLabel")}</span>
+                <h3>{t("categoriesTitle")}</h3>
+              </div>
+              <Link to="/menu" className="section-view-all-link">
+                {t("viewAllButton")}
               </Link>
-            ))}
-          </div>
+            </div>
+
+            <div className="category-chips">
+              {Object.entries(categoryIcons).map(([category, icon]) => (
+                <Link to="/menu" className="category-chip" key={category}>
+                  <span>{icon}</span>
+                  {t(categoryTranslationKeys[category])}
+                </Link>
+              ))}
+            </div>
+          </section>
 
           {mostOrderedItems.length > 0 && (
             <section className="home-section">

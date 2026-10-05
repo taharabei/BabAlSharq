@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { branchNames } from "../staffAccounts";
 import { ORDER_STATUSES } from "../constants";
@@ -11,7 +11,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 
-function Checkout({ cart, setCart }) {
+function Checkout({ cart, setCart, customerUser }) {
   const [branch, setBranch] = useState(branchNames[0]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,6 +25,20 @@ function Checkout({ cart, setCart }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { t } = useLanguage();
+
+  // ===== تعبئة الاسم والجوال تلقائياً للعميل المسجّل دخول (بدون قفل الحقول) =====
+  useEffect(() => {
+    if (!customerUser) return;
+
+    if (!name && customerUser.name) {
+      setName(customerUser.name);
+    }
+
+    if (!phone && customerUser.phone) {
+      setPhone(customerUser.phone);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerUser]);
 
   const cartTotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
