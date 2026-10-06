@@ -18,6 +18,10 @@ const emptyOfferForm = {
   image: "",
 };
 
+// ⚠️ ضع هنا نفس قيمة NOTIFY_SECRET المحفوظة بإعدادات الـ Worker على Cloudflare
+const NOTIFY_SECRET = "tahay5tahay5@";
+const NOTIFY_WORKER_URL = "https://babel-push-notify.tmh95355.workers.dev";
+
 function AdminOffersSection() {
   const [offers, setOffers] = useState([]);
   const [offerForm, setOfferForm] = useState(emptyOfferForm);
@@ -70,6 +74,26 @@ function AdminOffersSection() {
     setOfferForm(emptyOfferForm);
   }
 
+  // ===== إرسال إشعار Push لكل العملاء عند إضافة عرض جديد =====
+  async function notifyNewOffer(offerTitle) {
+    try {
+      await fetch(NOTIFY_WORKER_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-notify-secret": NOTIFY_SECRET,
+        },
+        body: JSON.stringify({
+          title: t("newOfferNotificationTitle"),
+          message: offerTitle,
+        }),
+      });
+    } catch (error) {
+      // فشل الإشعار لا يجب أن يمنع نجاح إضافة العرض نفسه
+      console.error("فشل إرسال إشعار العرض الجديد:", error);
+    }
+  }
+
   async function saveOffer(e) {
     e.preventDefault();
 
@@ -90,6 +114,7 @@ function AdminOffersSection() {
         await updateDoc(doc(db, "offers", editingOfferId), dataToSave);
       } else {
         await addDoc(collection(db, "offers"), dataToSave);
+        notifyNewOffer(dataToSave.title);
       }
 
       cancelOfferForm();

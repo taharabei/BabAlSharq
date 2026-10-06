@@ -309,6 +309,7 @@ notificationsEnabledSuccess: "تم تفعيل الإشعارات بنجاح، ب
 notificationsPermissionDenied: "تم رفض إذن الإشعارات. فعّله يدوياً من إعدادات المتصفح.",
 notificationsUnsupportedError: "هذا المتصفح لا يدعم الإشعارات.",
 notificationsGenericError: "حدث خطأ أثناء تفعيل الإشعارات. حاول مرة أخرى.",
+newOfferNotificationTitle: "عرض جديد! 🎁",
   },
   en: {
     brandName: "Babel Pastries",
@@ -593,5 +594,6 @@ notificationsEnabledSuccess: "Notifications enabled successfully, you'll be noti
 notificationsPermissionDenied: "Notification permission denied. Enable it manually from your browser settings.",
 notificationsUnsupportedError: "This browser does not support notifications.",
 notificationsGenericError: "An error occurred while enabling notifications. Please try again.",
+newOfferNotificationTitle: "New Offer! 🎁",
   },
 };
