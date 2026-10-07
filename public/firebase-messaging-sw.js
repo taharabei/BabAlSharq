@@ -1,6 +1,15 @@
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
+// ===== إجبار النسخة الجديدة تتفعّل فوراً بدل ما تنتظر إغلاق التطبيق بالكامل =====
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 firebase.initializeApp({
   apiKey: "AIzaSyAzrheo6aFCUaq7LB4BBC1vtjg9lfCDwPU",
   authDomain: "babel-pastries.firebaseapp.com",
