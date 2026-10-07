@@ -23,7 +23,7 @@ const NOTIFY_SECRET = "tahay5tahay5@";
 const NOTIFY_WORKER_URL = "https://babel-push-notify.tmh95355.workers.dev";
 
 function AdminOffersSection() {
-  const [offers, setOffers] = useState([]);
+  const [offers, setOffers] = useState([]); 
   const [offerForm, setOfferForm] = useState(emptyOfferForm);
   const [editingOfferId, setEditingOfferId] = useState(null);
   const [uploadingOfferImage, setUploadingOfferImage] = useState(false);

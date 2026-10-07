@@ -14,10 +14,10 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   const notificationTitle =
-    payload.notification?.title || "بابل للمعجنات";
+    payload.data?.title || "بابل للمعجنات";
 
   const notificationOptions = {
-    body: payload.notification?.body || "",
+    body: payload.data?.body || "",
     icon: "/logo.jpg",
   };
 
